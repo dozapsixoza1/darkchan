@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recoil Форум</title>
+</head>
+<body>
+    {% if username %}
+        <h1>Добро пожаловать, {{ emoji }} {{ username }} ({{ role }})</h1>
+        <a href="/roles">Все роли</a> | <a href="/logout">Выйти</a>
+    {% else %}
+        <form method="POST" action="/login">
+            <input name="username" placeholder="Имя пользователя" required>
+            <select name="role">
+                {% for r, icon in roles.items() %}
+                <option value="{{ r }}">{{ icon }} {{ r }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Войти</button>
+        </form>
+    {% endif %}
+</body>
+</html>
+
+  <!DOCTYPE html>
+<html>
+<head><title>Роли форума</title></head>
+<body>
+<h1>Роли форума Recoil</h1>
+<ul>
+{% for role, icon in roles.items() %}
+<li>{{ icon }} <b>{{ role }}</b> — описание роли</li>
+{% endfor %}
+</ul>
+<a href="/">Назад</a>
+</body>
+</html>
+
+ 
+from flask import Flask, render_template, request, redirect, url_for, session
+import os, json
+
+app = Flask(__name__)
+app.secret_key = 'recoilsecret'
+SAVE_FILE = 'data.json'
+
+if not os.path.exists(SAVE_FILE):
+    with open(SAVE_FILE, 'w') as f:
+        json.dump({}, f)
+
+with open(SAVE_FILE) as f:
+    users = json.load(f)
+
+ROLES = {
+    'Владелец': '👑',
+    'Главный админ': '⭐',
+    'Админ': '🛡',
+    'Модератор': '🔧',
+    'Куратор': '🎓',
+    'Осинтер': '🕵️',
+    'Ксинтер': '🧠',
+    'Сносер': '💣',
+    'Участник': '👤'
+}
+
+@app.route('/')
+def index():
+    username = session.get('username')
+    user = users.get(username, {}) if username else {}
+    return render_template('index.html', username=username, role=user.get('role', ''), emoji=ROLES.get(user.get('role', ''), ''))
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form['username']
+    role = request.form['role']
+    users[username] = {'role': role}
+    with open(SAVE_FILE, 'w') as f:
+        json.dump(users, f)
+    session['username'] = username
+    return redirect(url_for('index'))
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    return redirect(url_for('index'))
+
+@app.route('/roles')
+def roles():
+    return render_template('roles.html', roles=ROLES)
+
+if __name__ == '__main__':
+    app.run(debug=True) 
